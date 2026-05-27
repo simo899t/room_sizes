@@ -172,6 +172,9 @@ const App = (() => {
     document.getElementById('btn-edit-vertices').addEventListener('click', () => {
       C2D.convertToPolyAndEdit(state.selected);
     });
+    document.getElementById('btn-delete-props').addEventListener('click', () => {
+      C2D.deleteSelected();
+    });
   }
 
   // ── Object List ───────────────────────────────────────────────
