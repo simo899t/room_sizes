@@ -169,6 +169,9 @@ const App = (() => {
 
     // Properties form
     document.getElementById('btn-apply-props').addEventListener('click', applyProperties);
+    document.getElementById('btn-edit-vertices').addEventListener('click', () => {
+      C2D.convertToPolyAndEdit(state.selected);
+    });
   }
 
   // ── Object List ───────────────────────────────────────────────
@@ -216,6 +219,13 @@ const App = (() => {
   }
 
   // ── Properties UI ─────────────────────────────────────────────
+  function row(id) { return document.getElementById(id); }
+
+  function showRow(id, visible) {
+    const el = row(id);
+    if (el) el.style.display = visible ? '' : 'none';
+  }
+
   function updatePropertiesUI(item) {
     const form = document.getElementById('properties-form');
     const empty = document.getElementById('properties-empty');
@@ -223,72 +233,81 @@ const App = (() => {
     form.style.display = '';
     empty.style.display = 'none';
 
-    document.getElementById('prop-label').value = item.name || item.shape || (item.type === 'poly' ? 'Room' : 'Wall');
-    document.getElementById('prop-rot').value   = item.rot || 0;
-    document.getElementById('prop-color').value = item.color || '#4488aa';
+    const isRoom  = item.type === 'shape' || item.type === 'poly';
+    const isPoly  = item.type === 'poly';
+    const isShape = item.type === 'shape';
+    const isObj   = !item.type || item.type === 'object';
 
-    // hide w/d for poly rooms (dimensions don't apply to freeform polygons)
-    const wRow = document.getElementById('prop-w').closest('label');
-    const dRow = document.getElementById('prop-d').closest('label');
-    if (item.type === 'poly') {
-      wRow.style.display = 'none'; dRow.style.display = 'none';
-    } else {
-      wRow.style.display = ''; dRow.style.display = '';
+    document.getElementById('prop-label').value = item.name || item.shape || (isPoly ? 'Room' : item.type === 'wall' ? 'Wall' : item.name || '');
+    document.getElementById('prop-color').value = item.color || '#8a7060';
+
+    // Width / Depth — shapes and objects only
+    showRow('row-w', isShape || isObj);
+    showRow('row-d', isShape || isObj);
+    if (isShape) {
       document.getElementById('prop-w').value = Math.round(item.w || 0);
-      document.getElementById('prop-d').value = Math.round(item.d || item.h || 0);
+      document.getElementById('prop-d').value = Math.round(item.h || 0);
+    } else if (isObj) {
+      document.getElementById('prop-w').value = Math.round(item.w || 0);
+      document.getElementById('prop-d').value = Math.round(item.d || 0);
     }
 
-    const sqmEl = document.getElementById('prop-sqm');
-    if ((item.type === 'shape' || item.type === 'poly') && sqmEl) {
-      sqmEl.closest('label').style.display = '';
-      sqmEl.value = roomAreaSqm(item).toFixed(2);
-    } else if (sqmEl) {
-      sqmEl.closest('label').style.display = 'none';
-    }
+    // Area — rooms only
+    showRow('row-sqm', isRoom);
+    if (isRoom) document.getElementById('prop-sqm').value = roomAreaSqm(item).toFixed(2);
+
+    // Rotation — objects only (rooms don't rotate)
+    showRow('row-rot', isObj);
+    if (isObj) document.getElementById('prop-rot').value = item.rot || 0;
+
+    // Color — objects and rooms
+    showRow('row-color', isRoom || isObj);
+
+    // Edit vertices button — shape rooms only
+    const evBtn = document.getElementById('btn-edit-vertices');
+    if (evBtn) evBtn.style.display = isShape ? '' : 'none';
   }
 
   function applyProperties() {
     const item = state.selected;
     if (!item) return;
+
     item.name  = document.getElementById('prop-label').value;
-    const w    = parseInt(document.getElementById('prop-w').value);
-    const d    = parseInt(document.getElementById('prop-d').value);
-    item.rot   = parseInt(document.getElementById('prop-rot').value) || 0;
     item.color = document.getElementById('prop-color').value;
 
-    const sqmInput = parseFloat(document.getElementById('prop-sqm').value);
-
     if (item.type === 'shape') {
+      const w = parseInt(document.getElementById('prop-w').value);
+      const h = parseInt(document.getElementById('prop-d').value);
+      const sqmInput = parseFloat(document.getElementById('prop-sqm').value);
       if (!isNaN(sqmInput) && sqmInput > 0) {
-        // scale w and h proportionally to hit target sqm
-        const currentSqm = item.shape === 'circle'
-          ? Math.PI * (item.w / 2) * (item.h / 2) / 10000
-          : item.shape === 'lshape'
-          ? (item.w * item.h - (item.w / 2) * (item.h / 2)) / 10000
-          : item.w * item.h / 10000;
-        const scale = Math.sqrt(sqmInput / currentSqm);
-        item.w = Math.round(item.w * scale);
-        item.h = Math.round(item.h * scale);
+        const cur = roomAreaSqm(item);
+        const scale = Math.sqrt(sqmInput / cur);
+        item.w = Math.max(10, Math.round(item.w * scale));
+        item.h = Math.max(10, Math.round(item.h * scale));
       } else {
-        item.w = w; item.h = d;
+        if (!isNaN(w) && w > 0) item.w = w;
+        if (!isNaN(h) && h > 0) item.h = h;
       }
     } else if (item.type === 'poly') {
+      const sqmInput = parseFloat(document.getElementById('prop-sqm').value);
       if (!isNaN(sqmInput) && sqmInput > 0) {
-        const pts = item.points;
-        const currentArea = Math.abs(pts.reduce((s, p, i, a) => {
-          const j = (i + 1) % a.length;
-          return s + (a[j].x + p.x) * (a[j].y - p.y);
-        }, 0)) / 2 / 10000;
-        const scale = Math.sqrt(sqmInput / currentArea);
-        const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
-        const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-        item.points = pts.map(p => ({
-          x: Math.round(cx + (p.x - cx) * scale),
-          y: Math.round(cy + (p.y - cy) * scale),
-        }));
+        const cur = roomAreaSqm(item);
+        if (cur > 0) {
+          const scale = Math.sqrt(sqmInput / cur);
+          const cx = item.points.reduce((s, p) => s + p.x, 0) / item.points.length;
+          const cy = item.points.reduce((s, p) => s + p.y, 0) / item.points.length;
+          item.points = item.points.map(p => ({
+            x: Math.round(cx + (p.x - cx) * scale),
+            y: Math.round(cy + (p.y - cy) * scale),
+          }));
+        }
       }
     } else if (!item.type || item.type === 'object') {
-      item.w = w; item.d = d;
+      const w = parseInt(document.getElementById('prop-w').value);
+      const d = parseInt(document.getElementById('prop-d').value);
+      if (!isNaN(w) && w > 0) item.w = w;
+      if (!isNaN(d) && d > 0) item.d = d;
+      item.rot = parseInt(document.getElementById('prop-rot').value) || 0;
     }
 
     state.markDirty();

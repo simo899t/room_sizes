@@ -201,19 +201,48 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
 /* ─── Size Inputs ───────────────────────────────────────────── */
 .size-inputs { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-.size-inputs label, #properties-form label, #custom-object-panel label {
+.size-inputs label, #custom-object-panel label {
   display: flex; align-items: center; justify-content: space-between;
   font-size: 11px; color: var(--text-dim); gap: 6px;
 }
-.size-inputs input, #properties-form input, #custom-object-panel input[type=text],
+.size-inputs input, #custom-object-panel input[type=text],
 #custom-object-panel input[type=number] {
   background: var(--bg); border: 1px solid var(--border);
   color: var(--text); padding: 3px 6px; border-radius: 4px;
   font-size: 11px; width: 80px; text-align: right;
 }
-.size-inputs input:focus, #properties-form input:focus { outline: none; border-color: var(--accent); }
+.size-inputs input:focus { outline: none; border-color: var(--accent); }
 #custom-object-panel { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 #custom-object-panel input[type=color] { width: 40px; height: 24px; padding: 0; border: none; cursor: pointer; }
+
+/* ─── Properties Panel ──────────────────────────────────────── */
+.props { display: flex; flex-direction: column; gap: 5px; }
+.prop-row {
+  display: grid; grid-template-columns: 54px 1fr;
+  align-items: center; gap: 6px;
+  font-size: 11px; color: var(--text-dim);
+}
+.prop-row > span { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.prop-iu { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+.prop-iu input {
+  width: 68px; text-align: right;
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); padding: 3px 5px; border-radius: 4px; font-size: 11px;
+}
+.prop-iu input:focus { outline: none; border-color: var(--accent); }
+.prop-iu em { font-style: normal; font-size: 10px; color: var(--text-dim); width: 16px; }
+.prop-text {
+  width: 100%; background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); padding: 3px 5px; border-radius: 4px; font-size: 11px;
+}
+.prop-text:focus { outline: none; border-color: var(--accent); }
+#prop-color { width: 100%; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+.secondary-btn {
+  width: 100%; background: transparent; border: 1px solid var(--border);
+  color: var(--text-dim); padding: 5px; border-radius: var(--radius);
+  cursor: pointer; font-size: 11px; margin-top: 2px; transition: all 0.15s;
+}
+.secondary-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ─── Buttons ───────────────────────────────────────────────── */
 .primary-btn {

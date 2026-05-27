@@ -154,14 +154,33 @@
         <div class="panel-section">
           <h3>Properties</h3>
           <div id="properties-empty" class="hint">Select an element to edit its properties.</div>
-          <div id="properties-form" style="display:none">
-            <label>Label <input type="text" id="prop-label"></label>
-            <label>Width <input type="number" id="prop-w"> cm</label>
-            <label>Depth <input type="number" id="prop-d"> cm</label>
-            <label>Area m² <input type="number" id="prop-sqm" step="0.1" min="0.1"> m²</label>
-            <label>Rotation <input type="number" id="prop-rot" min="0" max="360"> °</label>
-            <label>Color <input type="color" id="prop-color"></label>
+          <div id="properties-form" style="display:none" class="props">
+            <div class="prop-row" id="row-label">
+              <span>Name</span>
+              <input type="text" id="prop-label" class="prop-text">
+            </div>
+            <div class="prop-row" id="row-w">
+              <span>Width</span>
+              <div class="prop-iu"><input type="number" id="prop-w"><em>cm</em></div>
+            </div>
+            <div class="prop-row" id="row-d">
+              <span>Depth</span>
+              <div class="prop-iu"><input type="number" id="prop-d"><em>cm</em></div>
+            </div>
+            <div class="prop-row" id="row-sqm">
+              <span>Area</span>
+              <div class="prop-iu"><input type="number" id="prop-sqm" step="0.1" min="0.1"><em>m²</em></div>
+            </div>
+            <div class="prop-row" id="row-rot">
+              <span>Rotation</span>
+              <div class="prop-iu"><input type="number" id="prop-rot" min="0" max="360"><em>°</em></div>
+            </div>
+            <div class="prop-row" id="row-color">
+              <span>Color</span>
+              <input type="color" id="prop-color">
+            </div>
             <button class="primary-btn" id="btn-apply-props">Apply</button>
+            <button class="secondary-btn" id="btn-edit-vertices" style="display:none">Edit vertices</button>
           </div>
         </div>
         <div class="panel-section">
