@@ -217,12 +217,16 @@ const C2D = (() => {
         });
 
         if (sel) {
+          ctx.save();
           pts.forEach(p => {
             ctx.beginPath();
-            ctx.arc(p.x, p.y, 7 / vscale, 0, Math.PI * 2);
-            ctx.fillStyle = '#dc655f';
-            ctx.fill();
+            ctx.arc(p.x, p.y, 6 / vscale, 0, Math.PI * 2);
+            ctx.fillStyle = '#fdfcf8';
+            ctx.strokeStyle = '#dc655f';
+            ctx.lineWidth = 2 / vscale;
+            ctx.fill(); ctx.stroke();
           });
+          ctx.restore();
           drawWallDimension(wall);
         }
       }
@@ -488,13 +492,17 @@ const C2D = (() => {
     ctx.restore();
   }
 
-  function hitPolyVertex(wx, wy, wall) {
-    if (wall.type !== 'poly') return -1;
+  function hitPointsVertex(wx, wy, pts) {
     const r = 10 / vscale;
-    for (let i = 0; i < wall.points.length; i++) {
-      if (Math.hypot(wx - wall.points[i].x, wy - wall.points[i].y) < r) return i;
+    for (let i = 0; i < pts.length; i++) {
+      if (Math.hypot(wx - pts[i].x, wy - pts[i].y) < r) return i;
     }
     return -1;
+  }
+
+  function hitPolyVertex(wx, wy, wall) {
+    if (wall.type !== 'poly') return -1;
+    return hitPointsVertex(wx, wy, wall.points);
   }
 
   function hitPolyMidpoint(wx, wy, wall) {
@@ -680,6 +688,15 @@ function shapeToPolyPoints(wall) {
     if (tool === 'select') {
       const sel = state.selected;
 
+      // ── Sketch-wall vertex handles ───────────────────────────────
+      if (sel && sel.type === 'wall') {
+        const vi = hitPointsVertex(wx, wy, sel.points);
+        if (vi >= 0) {
+          dragging = { type: 'wall-vertex', wall: sel, vi };
+          render(); return;
+        }
+      }
+
       // ── Poly vertex/midpoint handles (checked before hit-testing the room) ──
       if (sel && sel.type === 'poly') {
         const vi = hitPolyVertex(wx, wy, sel);
@@ -802,6 +819,8 @@ function shapeToPolyPoints(wall) {
         const cx = o.x + o.w / 2, cy = o.y + o.d / 2;
         const angle = Math.atan2(wy - cy, wx - cx) * 180 / Math.PI + 90;
         o.rot = Math.round(angle / 5) * 5;
+      } else if (dragging.type === 'wall-vertex') {
+        dragging.wall.points[dragging.vi] = { x: snap(wx), y: snap(wy) };
       } else if (dragging.type === 'poly-vertex') {
         const pts = dragging.wall.points;
         const vi = dragging.vi;
