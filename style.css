@@ -1,0 +1,321 @@
+/* ─── Reset & Root ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0d1b2a;
+  --bg2:       #112233;
+  --bg3:       #162840;
+  --border:    #1e3a5f;
+  --accent:    #2196f3;
+  --accent2:   #00bcd4;
+  --grid:      rgba(33,150,243,0.12);
+  --grid2:     rgba(33,150,243,0.25);
+  --wall:      #4fc3f7;
+  --wall-fill: rgba(79,195,247,0.08);
+  --text:      #cde4f5;
+  --text-dim:  #5a8aaa;
+  --danger:    #ef5350;
+  --success:   #66bb6a;
+  --obj-stroke:#00e5ff;
+  --panel-w:   240px;
+  --top-h:     52px;
+  --bot-h:     26px;
+  --radius:    6px;
+  --font:      'Segoe UI', system-ui, sans-serif;
+}
+
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; }
+
+/* ─── Layout ────────────────────────────────────────────────── */
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+#topbar {
+  height: var(--top-h);
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 12px; gap: 8px;
+  flex-shrink: 0; z-index: 10;
+}
+
+#main {
+  display: flex; flex: 1; overflow: hidden;
+}
+
+#left-panel, #right-panel {
+  width: var(--panel-w);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+#right-panel { border-right: none; border-left: 1px solid var(--border); }
+
+#canvas-container {
+  flex: 1; position: relative; overflow: hidden;
+  background: var(--bg);
+  cursor: crosshair;
+}
+#canvas2d { display: block; }
+#canvas3d { position: absolute; inset: 0; }
+
+#canvas-overlay {
+  position: absolute; inset: 0; pointer-events: none;
+}
+
+#statusbar {
+  height: var(--bot-h);
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 12px; gap: 20px;
+  font-size: 11px; color: var(--text-dim);
+  flex-shrink: 0;
+}
+#status-msg { color: var(--text); }
+#status-hint { margin-left: auto; }
+
+/* ─── Top Bar ───────────────────────────────────────────────── */
+.logo {
+  font-size: 16px; font-weight: 700;
+  color: var(--accent2); letter-spacing: 1px;
+  white-space: nowrap; margin-right: 8px;
+}
+.toolbar-center { display: flex; align-items: center; gap: 4px; flex: 1; justify-content: center; }
+.toolbar-right  { display: flex; align-items: center; gap: 8px; }
+
+.tool-sep { width: 1px; height: 28px; background: var(--border); margin: 0 4px; }
+
+.tool-btn {
+  display: flex; align-items: center; gap: 5px;
+  background: transparent; border: 1px solid transparent;
+  color: var(--text-dim); padding: 5px 10px; border-radius: var(--radius);
+  cursor: pointer; font-size: 12px; transition: all 0.15s;
+}
+.tool-btn svg { width: 16px; height: 16px; fill: currentColor; }
+.tool-btn:hover { background: var(--bg3); color: var(--text); border-color: var(--border); }
+.tool-btn.active { background: var(--bg3); color: var(--accent2); border-color: var(--accent); }
+
+.view-btn {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text-dim); padding: 4px 12px; border-radius: var(--radius);
+  cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.15s;
+}
+.view-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.view-btn:hover:not(.active) { border-color: var(--accent); color: var(--text); }
+
+.icon-btn {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text-dim); padding: 4px 10px; border-radius: var(--radius);
+  cursor: pointer; font-size: 11px; transition: all 0.15s;
+}
+.icon-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+.scale-label {
+  color: var(--text-dim); font-size: 11px;
+  display: flex; align-items: center; gap: 6px;
+}
+.scale-label select {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); padding: 3px 6px; border-radius: 4px; font-size: 11px;
+}
+
+/* ─── Panels ────────────────────────────────────────────────── */
+.panel-section {
+  padding: 14px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.panel-section h3 {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--accent2); margin-bottom: 10px;
+}
+.panel-section h4 {
+  font-size: 11px; font-weight: 600; color: var(--text-dim); margin-bottom: 6px;
+}
+.hint { color: var(--text-dim); font-size: 11px; line-height: 1.5; }
+.hint.tip { color: #4caf50; margin-top: 6px; }
+
+/* ─── Shape Grid ────────────────────────────────────────────── */
+.shape-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;
+}
+.shape-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text-dim); padding: 8px 4px; border-radius: var(--radius);
+  cursor: pointer; font-size: 11px; transition: all 0.15s;
+}
+.shape-btn svg { width: 36px; height: 30px; stroke: currentColor; }
+.shape-btn:hover { border-color: var(--accent); color: var(--accent2); }
+.shape-btn.active { border-color: var(--accent); color: var(--accent2); background: rgba(33,150,243,0.1); }
+
+/* ─── Sketch Options ────────────────────────────────────────── */
+.sketch-opts { display: flex; gap: 6px; margin-bottom: 12px; }
+.sketch-opt {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text-dim); padding: 8px 4px; border-radius: var(--radius);
+  cursor: pointer; font-size: 11px; transition: all 0.15s;
+}
+.sketch-opt svg { width: 40px; height: 20px; }
+.sketch-opt:hover, .sketch-opt.active {
+  border-color: var(--accent); color: var(--accent2);
+  background: rgba(33,150,243,0.1);
+}
+
+.wall-thickness {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-size: 11px; color: var(--text-dim); margin-bottom: 10px;
+}
+.wall-thickness input[type=range] { flex: 1; min-width: 60px; accent-color: var(--accent); }
+
+/* ─── Object List ───────────────────────────────────────────── */
+.object-categories {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px;
+}
+.cat-btn {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text-dim); padding: 3px 8px; border-radius: 12px;
+  cursor: pointer; font-size: 11px; transition: all 0.15s;
+}
+.cat-btn:hover, .cat-btn.active {
+  background: rgba(33,150,243,0.15); border-color: var(--accent); color: var(--accent2);
+}
+
+.object-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+.obj-item {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 6px 8px;
+  cursor: pointer; transition: all 0.15s;
+}
+.obj-item:hover { border-color: var(--accent2); background: rgba(0,229,255,0.05); }
+.obj-item.active { border-color: var(--accent2); background: rgba(0,229,255,0.1); }
+.obj-icon { font-size: 18px; width: 24px; text-align: center; }
+.obj-info { flex: 1; }
+.obj-name { font-weight: 600; font-size: 12px; }
+.obj-size { font-size: 10px; color: var(--text-dim); }
+
+/* ─── Size Inputs ───────────────────────────────────────────── */
+.size-inputs { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.size-inputs label, #properties-form label, #custom-object-panel label {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; color: var(--text-dim); gap: 6px;
+}
+.size-inputs input, #properties-form input, #custom-object-panel input[type=text],
+#custom-object-panel input[type=number] {
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); padding: 3px 6px; border-radius: 4px;
+  font-size: 11px; width: 80px; text-align: right;
+}
+.size-inputs input:focus, #properties-form input:focus { outline: none; border-color: var(--accent); }
+#custom-object-panel { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+#custom-object-panel input[type=color] { width: 40px; height: 24px; padding: 0; border: none; cursor: pointer; }
+
+/* ─── Buttons ───────────────────────────────────────────────── */
+.primary-btn {
+  width: 100%; background: var(--accent); border: none;
+  color: #fff; padding: 7px; border-radius: var(--radius);
+  cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.15s;
+  margin-top: 4px;
+}
+.primary-btn:hover { background: #1976d2; }
+.danger-btn {
+  width: 100%; background: transparent; border: 1px solid var(--danger);
+  color: var(--danger); padding: 5px; border-radius: var(--radius);
+  cursor: pointer; font-size: 12px; margin-top: 6px; transition: all 0.15s;
+}
+.danger-btn:hover { background: var(--danger); color: #fff; }
+
+/* ─── Layers ─────────────────────────────────────────────────── */
+#layers-list { display: flex; flex-direction: column; gap: 4px; }
+.layer-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 6px; border-radius: 4px; cursor: pointer;
+  font-size: 11px; transition: background 0.1s;
+}
+.layer-item:hover { background: var(--bg3); }
+.layer-item.active-layer { background: rgba(33,150,243,0.15); }
+.layer-vis { width: 14px; height: 14px; border: 1px solid var(--border); border-radius: 2px;
+  background: var(--accent); cursor: pointer; flex-shrink: 0; }
+.layer-vis.hidden { background: transparent; }
+.layer-name { flex: 1; }
+.layer-badge { font-size: 10px; color: var(--text-dim); }
+
+/* Floors row */
+.floors-row {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
+}
+.floor-tab {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text-dim); padding: 3px 10px; border-radius: 12px;
+  cursor: pointer; font-size: 11px; transition: all 0.15s;
+}
+.floor-tab.active { background: rgba(33,150,243,0.2); border-color: var(--accent); color: var(--accent2); }
+.floor-add, .floor-del {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text-dim); padding: 3px 7px; border-radius: 12px;
+  cursor: pointer; font-size: 14px; line-height: 1; transition: all 0.15s;
+}
+.floor-add:hover { border-color: var(--success); color: var(--success); }
+.floor-del:hover { border-color: var(--danger); color: var(--danger); }
+
+/* ─── Room Stats ─────────────────────────────────────────────── */
+#room-stats .stat {
+  font-size: 12px; padding: 3px 0;
+  color: var(--text-dim);
+}
+#room-stats .stat span { color: var(--accent2); font-weight: 600; }
+
+/* ─── Zoom Controls ──────────────────────────────────────────── */
+#zoom-controls {
+  position: absolute; bottom: 14px; right: 14px;
+  display: flex; align-items: center; gap: 4px;
+  pointer-events: all;
+}
+#zoom-controls button {
+  width: 28px; height: 28px; border-radius: 4px;
+  background: var(--bg2); border: 1px solid var(--border);
+  color: var(--text); cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.1s;
+}
+#zoom-controls button:hover { border-color: var(--accent); color: var(--accent2); }
+#zoom-label { font-size: 11px; color: var(--text-dim); min-width: 38px; text-align: center; }
+
+#coords-display {
+  position: absolute; bottom: 14px; left: 14px;
+  font-size: 11px; color: var(--text-dim);
+  background: rgba(13,27,42,0.7); padding: 3px 8px; border-radius: 4px;
+  pointer-events: none;
+}
+
+/* ─── Measure ────────────────────────────────────────────────── */
+#measure-result {
+  font-size: 20px; font-weight: 700; color: var(--accent2); margin-top: 8px;
+}
+
+/* ─── Selection Info ─────────────────────────────────────────── */
+#selection-info { margin-top: 8px; }
+#selection-details { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
+
+/* ─── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── Modal ──────────────────────────────────────────────────── */
+#modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+#modal {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px; min-width: 280px;
+}
+
+/* ─── Canvas cursor variants ─────────────────────────────────── */
+.cursor-crosshair { cursor: crosshair !important; }
+.cursor-move      { cursor: move      !important; }
+.cursor-pointer   { cursor: pointer   !important; }
+.cursor-default   { cursor: default   !important; }
