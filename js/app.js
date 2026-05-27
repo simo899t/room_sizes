@@ -223,24 +223,25 @@ const App = (() => {
     form.style.display = '';
     empty.style.display = 'none';
 
-    document.getElementById('prop-label').value = item.name || item.shape || 'Wall';
-    document.getElementById('prop-w').value     = Math.round(item.w || 0);
-    document.getElementById('prop-d').value     = Math.round(item.d || item.h || 0);
+    document.getElementById('prop-label').value = item.name || item.shape || (item.type === 'poly' ? 'Room' : 'Wall');
     document.getElementById('prop-rot').value   = item.rot || 0;
     document.getElementById('prop-color').value = item.color || '#4488aa';
+
+    // hide w/d for poly rooms (dimensions don't apply to freeform polygons)
+    const wRow = document.getElementById('prop-w').closest('label');
+    const dRow = document.getElementById('prop-d').closest('label');
+    if (item.type === 'poly') {
+      wRow.style.display = 'none'; dRow.style.display = 'none';
+    } else {
+      wRow.style.display = ''; dRow.style.display = '';
+      document.getElementById('prop-w').value = Math.round(item.w || 0);
+      document.getElementById('prop-d').value = Math.round(item.d || item.h || 0);
+    }
 
     const sqmEl = document.getElementById('prop-sqm');
     if ((item.type === 'shape' || item.type === 'poly') && sqmEl) {
       sqmEl.closest('label').style.display = '';
-      const area = item.type === 'poly'
-        ? (Math.abs(item.points.reduce((s, p, i, a) => {
-            const j = (i + 1) % a.length;
-            return s + (a[j].x + p.x) * (a[j].y - p.y);
-          }, 0)) / 2 / 10000)
-        : (item.shape === 'circle' ? Math.PI * (item.w / 2) * (item.h / 2) / 10000
-           : item.shape === 'lshape' ? (item.w * item.h - (item.w / 2) * (item.h / 2)) / 10000
-           : item.w * item.h / 10000);
-      sqmEl.value = area.toFixed(2);
+      sqmEl.value = roomAreaSqm(item).toFixed(2);
     } else if (sqmEl) {
       sqmEl.closest('label').style.display = 'none';
     }

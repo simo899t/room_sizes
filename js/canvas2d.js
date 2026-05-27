@@ -514,24 +514,36 @@ const C2D = (() => {
   function drawPolyHandles(wall) {
     const pts = wall.points;
     ctx.save();
-    pts.forEach((p, i) => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 7 / vscale, 0, Math.PI * 2);
-      ctx.fillStyle = '#fdfcf8';
-      ctx.strokeStyle = '#dc655f';
-      ctx.lineWidth = 2 / vscale;
-      ctx.fill();
-      ctx.stroke();
-    });
-    // midpoint handles to add vertices
+    // edge midpoint handles (extrude = right-click/drag; split = left-click)
     pts.forEach((p, i) => {
       const next = pts[(i + 1) % pts.length];
       const mx = (p.x + next.x) / 2, my = (p.y + next.y) / 2;
+      // draw arrow perpendicular to edge
+      const ex = next.x - p.x, ey = next.y - p.y;
+      const len = Math.hypot(ex, ey) || 1;
+      const nx = -ey / len, ny = ex / len;
+      const as = 7 / vscale;
       ctx.beginPath();
-      ctx.arc(mx, my, 4 / vscale, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(220,101,95,0.4)';
+      ctx.moveTo(mx + nx * as, my + ny * as);
+      ctx.lineTo(mx - nx * as, my - ny * as);
+      ctx.strokeStyle = 'rgba(220,101,95,0.5)';
+      ctx.lineWidth = 1.5 / vscale;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(mx, my, 4.5 / vscale, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(253,252,248,0.9)';
       ctx.strokeStyle = '#dc655f';
-      ctx.lineWidth = 1 / vscale;
+      ctx.lineWidth = 1.5 / vscale;
+      ctx.fill();
+      ctx.stroke();
+    });
+    // vertex handles (drag = move; dblclick = delete)
+    pts.forEach((p, i) => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 6.5 / vscale, 0, Math.PI * 2);
+      ctx.fillStyle = '#fdfcf8';
+      ctx.strokeStyle = '#dc655f';
+      ctx.lineWidth = 2 / vscale;
       ctx.fill();
       ctx.stroke();
     });
@@ -555,6 +567,17 @@ const C2D = (() => {
       const next = pts[(i + 1) % pts.length];
       const mx = (pts[i].x + next.x) / 2, my = (pts[i].y + next.y) / 2;
       if (Math.hypot(wx - mx, wy - my) < r) return i;
+    }
+    return -1;
+  }
+
+  function hitPolyEdge(wx, wy, wall) {
+    if (wall.type !== 'poly') return -1;
+    const pts = wall.points;
+    const thresh = 8 / vscale;
+    for (let i = 0; i < pts.length; i++) {
+      const j = (i + 1) % pts.length;
+      if (ptToSegDist(wx, wy, pts[i], pts[j]) < thresh) return i;
     }
     return -1;
   }
@@ -721,9 +744,33 @@ const C2D = (() => {
     }
 
     if (e.button === 2) {
-      // right click: cancel sketch
       if (state.tool === 'sketch' && sketchPoints.length > 0) {
         finalizeSketch();
+        return;
+      }
+      // right-click on a poly edge: start face extrusion
+      if (state.tool === 'select') {
+        const sel = state.selected;
+        if (sel && sel.type === 'poly') {
+          const ei = hitPolyEdge(wx, wy, sel);
+          if (ei >= 0) {
+            const j = (ei + 1) % sel.points.length;
+            const pa = { ...sel.points[ei] }, pb = { ...sel.points[j] };
+            // insert two new vertices to form the extruded face
+            sel.points.splice(j, 0, { ...pb }, { ...pa });
+            // now ei=ei, ei+1=new pb copy, ei+2=new pa copy, ei+3=original j
+            // dragging will move the new face (ei+1 and ei+2 together)
+            dragging = { type: 'poly-edge', wall: sel, ei: ei + 1, offX: wx, offY: wy };
+            state.markDirty(); render(); return;
+          }
+        }
+        // right-click on shape room: convert to poly for editing
+        if (sel && sel.type === 'shape') {
+          sel.points = shapeToPolyPoints(sel);
+          sel.type = 'poly';
+          delete sel.shape; delete sel.w; delete sel.h; delete sel.x; delete sel.y;
+          state.markDirty(); render(); return;
+        }
       }
       return;
     }
@@ -742,11 +789,11 @@ const C2D = (() => {
         }
         const mi = hitPolyMidpoint(wx, wy, sel);
         if (mi >= 0) {
-          const next = sel.points[(mi + 1) % sel.points.length];
-          const nx = snap((sel.points[mi].x + next.x) / 2);
-          const ny = snap((sel.points[mi].y + next.y) / 2);
-          sel.points.splice(mi + 1, 0, { x: nx, y: ny });
-          dragging = { type: 'poly-vertex', wall: sel, vi: mi + 1 };
+          // left-drag on midpoint = extrude the face
+          const j = (mi + 1) % sel.points.length;
+          const pa = { ...sel.points[mi] }, pb = { ...sel.points[j] };
+          sel.points.splice(j, 0, { ...pb }, { ...pa });
+          dragging = { type: 'poly-edge', wall: sel, ei: mi + 1, offX: wx, offY: wy };
           state.markDirty(); render(); return;
         }
       }
@@ -879,8 +926,35 @@ const C2D = (() => {
         const angle = Math.atan2(wy - cy, wx - cx) * 180 / Math.PI + 90;
         o.rot = Math.round(angle / 5) * 5;
       } else if (dragging.type === 'poly-vertex') {
-        const p = dragging.wall.points[dragging.vi];
-        p.x = snap(wx); p.y = snap(wy);
+        const pts = dragging.wall.points;
+        const vi = dragging.vi;
+        let x = snap(wx), y = snap(wy);
+        // orthogonal snap: if close to h/v alignment with a neighbor, lock to it
+        const ORTHO_THRESH = 15 / vscale;
+        const prev = pts[(vi - 1 + pts.length) % pts.length];
+        const next = pts[(vi + 1) % pts.length];
+        if (Math.abs(x - prev.x) < ORTHO_THRESH) x = prev.x;
+        else if (Math.abs(y - prev.y) < ORTHO_THRESH) y = prev.y;
+        if (Math.abs(x - next.x) < ORTHO_THRESH) x = next.x;
+        else if (Math.abs(y - next.y) < ORTHO_THRESH) y = next.y;
+        pts[vi].x = x; pts[vi].y = y;
+      } else if (dragging.type === 'poly-edge') {
+        const dx = wx - dragging.offX, dy = wy - dragging.offY;
+        dragging.offX = wx; dragging.offY = wy;
+        const pts = dragging.wall.points;
+        const n = pts.length;
+        const i = dragging.ei;
+        const j = (i + 1) % n;
+        const edgeDx = pts[j].x - pts[i].x;
+        const edgeDy = pts[j].y - pts[i].y;
+        // project movement onto the normal of the edge
+        const len = Math.hypot(edgeDx, edgeDy);
+        const nx = -edgeDy / len, ny = edgeDx / len;
+        const proj = dx * nx + dy * ny;
+        const sdx = snap(pts[i].x + nx * proj) - pts[i].x;
+        const sdy = snap(pts[i].y + ny * proj) - pts[i].y;
+        pts[i].x += sdx; pts[i].y += sdy;
+        pts[j].x += sdx; pts[j].y += sdy;
       } else if (dragging.type === 'move-wall') {
         const dx = wx - dragging.offX, dy = wy - dragging.offY;
         dragging.offX = wx; dragging.offY = wy;
@@ -953,6 +1027,20 @@ const C2D = (() => {
   function onDblClick(e) {
     if (state.tool === 'sketch' && sketchPoints.length >= 2) {
       finalizeSketch();
+      return;
+    }
+    if (state.tool === 'select') {
+      updateMouseWorld(e);
+      const wx = mouse.world.x, wy = mouse.world.y;
+      const sel = state.selected;
+      if (sel && sel.type === 'poly') {
+        const vi = hitPolyVertex(wx, wy, sel);
+        if (vi >= 0 && sel.points.length > 3) {
+          sel.points.splice(vi, 1);
+          state.markDirty();
+          render();
+        }
+      }
     }
   }
 
