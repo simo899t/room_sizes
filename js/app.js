@@ -150,10 +150,13 @@ const App = (() => {
 
     // Add custom object
     document.getElementById('btn-add-custom').addEventListener('click', () => {
+      const shapeIcons = { rect: '⬛', circle: '⬤', triangle: '▲', lshape: '⌐' };
+      const shape = document.getElementById('custom-shape').value;
       const obj = {
         id: uid(),
         name: document.getElementById('custom-name').value || 'Custom',
-        icon: '⬛',
+        icon: shapeIcons[shape] || '⬛',
+        shape,
         w:    parseInt(document.getElementById('custom-w').value) || 100,
         d:    parseInt(document.getElementById('custom-d').value) || 80,
         color: document.getElementById('custom-color').value,

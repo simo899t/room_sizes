@@ -218,12 +218,21 @@ const C2D = (() => {
 
         if (sel) {
           ctx.save();
+          // midpoint handles — click to insert vertex
+          ctx.fillStyle = 'rgba(248,245,238,0.9)';
+          ctx.strokeStyle = 'rgba(220,101,95,0.6)';
+          ctx.lineWidth = 1.5 / vscale;
+          for (let i = 0; i < pts.length - 1; i++) {
+            const mx = (pts[i].x + pts[i+1].x) / 2, my = (pts[i].y + pts[i+1].y) / 2;
+            ctx.beginPath(); ctx.arc(mx, my, 4 / vscale, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+          }
+          // vertex handles — drag to move, double-click to delete
+          ctx.fillStyle = '#fdfcf8';
+          ctx.strokeStyle = '#dc655f';
+          ctx.lineWidth = 2 / vscale;
           pts.forEach(p => {
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 6 / vscale, 0, Math.PI * 2);
-            ctx.fillStyle = '#fdfcf8';
-            ctx.strokeStyle = '#dc655f';
-            ctx.lineWidth = 2 / vscale;
+            ctx.beginPath(); ctx.arc(p.x, p.y, 6 / vscale, 0, Math.PI * 2);
             ctx.fill(); ctx.stroke();
           });
           ctx.restore();
@@ -265,8 +274,18 @@ const C2D = (() => {
       ctx.strokeStyle = sel ? '#dc655f' : (obj.color + 'ff');
       ctx.lineWidth   = (sel ? 2.5 : 1.5) / vscale;
       ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(-hw, -hd, obj.w, obj.d, 4 / vscale);
-      else ctx.rect(-hw, -hd, obj.w, obj.d);
+      if (obj.shape === 'circle') {
+        ctx.ellipse(0, 0, hw, hd, 0, 0, Math.PI * 2);
+      } else if (obj.shape === 'triangle') {
+        ctx.moveTo(0, -hd); ctx.lineTo(hw, hd); ctx.lineTo(-hw, hd); ctx.closePath();
+      } else if (obj.shape === 'lshape') {
+        ctx.moveTo(-hw, -hd); ctx.lineTo(hw, -hd); ctx.lineTo(hw, 0);
+        ctx.lineTo(0, 0); ctx.lineTo(0, hd); ctx.lineTo(-hw, hd); ctx.closePath();
+      } else if (ctx.roundRect) {
+        ctx.roundRect(-hw, -hd, obj.w, obj.d, 4 / vscale);
+      } else {
+        ctx.rect(-hw, -hd, obj.w, obj.d);
+      }
       ctx.fill();
       ctx.shadowBlur = 0;
       ctx.stroke();
@@ -688,12 +707,23 @@ function shapeToPolyPoints(wall) {
     if (tool === 'select') {
       const sel = state.selected;
 
-      // ── Sketch-wall vertex handles ───────────────────────────────
+      // ── Sketch-wall vertex + midpoint handles ───────────────────
       if (sel && sel.type === 'wall') {
         const vi = hitPointsVertex(wx, wy, sel.points);
         if (vi >= 0) {
           dragging = { type: 'wall-vertex', wall: sel, vi };
           render(); return;
+        }
+        // midpoint: insert new vertex and drag it
+        const pts = sel.points;
+        const r = 8 / vscale;
+        for (let i = 0; i < pts.length - 1; i++) {
+          const mx = (pts[i].x + pts[i+1].x) / 2, my = (pts[i].y + pts[i+1].y) / 2;
+          if (Math.hypot(wx - mx, wy - my) < r) {
+            pts.splice(i + 1, 0, { x: snap(mx), y: snap(my) });
+            dragging = { type: 'wall-vertex', wall: sel, vi: i + 1 };
+            state.markDirty(); render(); return;
+          }
         }
       }
 
@@ -820,7 +850,21 @@ function shapeToPolyPoints(wall) {
         const angle = Math.atan2(wy - cy, wx - cx) * 180 / Math.PI + 90;
         o.rot = Math.round(angle / 5) * 5;
       } else if (dragging.type === 'wall-vertex') {
-        dragging.wall.points[dragging.vi] = { x: snap(wx), y: snap(wy) };
+        const pts = dragging.wall.points;
+        const vi = dragging.vi;
+        let x = snap(wx), y = snap(wy);
+        const ORTHO = 15 / vscale;
+        if (vi > 0) {
+          const prev = pts[vi - 1];
+          if      (Math.abs(x - prev.x) < ORTHO) x = prev.x;
+          else if (Math.abs(y - prev.y) < ORTHO) y = prev.y;
+        }
+        if (vi < pts.length - 1) {
+          const next = pts[vi + 1];
+          if      (Math.abs(x - next.x) < ORTHO) x = next.x;
+          else if (Math.abs(y - next.y) < ORTHO) y = next.y;
+        }
+        pts[vi] = { x, y };
       } else if (dragging.type === 'poly-vertex') {
         const pts = dragging.wall.points;
         const vi = dragging.vi;
@@ -915,8 +959,14 @@ function shapeToPolyPoints(wall) {
         const vi = hitPolyVertex(wx, wy, sel);
         if (vi >= 0 && sel.points.length > 3) {
           sel.points.splice(vi, 1);
-          state.markDirty();
-          render();
+          state.markDirty(); render();
+        }
+      }
+      if (sel && sel.type === 'wall') {
+        const vi = hitPointsVertex(wx, wy, sel.points);
+        if (vi >= 0 && sel.points.length > 2) {
+          sel.points.splice(vi, 1);
+          state.markDirty(); render();
         }
       }
     }
@@ -945,10 +995,6 @@ function shapeToPolyPoints(wall) {
     }
     if (e.key === 'Enter' && state.tool === 'sketch') {
       finalizeSketch();
-    }
-    if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected) {
-      deleteSelected();
-      e.preventDefault();
     }
     if (e.key === 'v' || e.key === 'V') state.setTool('select');
     if (e.key === 'r' || e.key === 'R') state.setTool('room');
