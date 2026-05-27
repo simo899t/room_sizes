@@ -202,7 +202,9 @@ const App = (() => {
     if (!item) { info.style.display = 'none'; return; }
     info.style.display = '';
     if (item.type === 'shape') {
-      details.textContent = `${item.shape} room — ${Math.round(item.w)}×${Math.round(item.h)} cm`;
+      details.textContent = `${item.shape} room — ${Math.round(item.w)}×${Math.round(item.h)} cm — ${roomAreaSqm(item).toFixed(1)} m²`;
+    } else if (item.type === 'poly') {
+      details.textContent = `room — ${roomAreaSqm(item).toFixed(1)} m²`;
     } else if (item.type === 'wall') {
       const pts = item.points;
       const dx = pts[pts.length - 1].x - pts[0].x;
@@ -222,10 +224,26 @@ const App = (() => {
     empty.style.display = 'none';
 
     document.getElementById('prop-label').value = item.name || item.shape || 'Wall';
-    document.getElementById('prop-w').value     = Math.round(item.w || item.w || 0);
+    document.getElementById('prop-w').value     = Math.round(item.w || 0);
     document.getElementById('prop-d').value     = Math.round(item.d || item.h || 0);
     document.getElementById('prop-rot').value   = item.rot || 0;
     document.getElementById('prop-color').value = item.color || '#4488aa';
+
+    const sqmEl = document.getElementById('prop-sqm');
+    if ((item.type === 'shape' || item.type === 'poly') && sqmEl) {
+      sqmEl.closest('label').style.display = '';
+      const area = item.type === 'poly'
+        ? (Math.abs(item.points.reduce((s, p, i, a) => {
+            const j = (i + 1) % a.length;
+            return s + (a[j].x + p.x) * (a[j].y - p.y);
+          }, 0)) / 2 / 10000)
+        : (item.shape === 'circle' ? Math.PI * (item.w / 2) * (item.h / 2) / 10000
+           : item.shape === 'lshape' ? (item.w * item.h - (item.w / 2) * (item.h / 2)) / 10000
+           : item.w * item.h / 10000);
+      sqmEl.value = area.toFixed(2);
+    } else if (sqmEl) {
+      sqmEl.closest('label').style.display = 'none';
+    }
   }
 
   function applyProperties() {
@@ -236,9 +254,44 @@ const App = (() => {
     const d    = parseInt(document.getElementById('prop-d').value);
     item.rot   = parseInt(document.getElementById('prop-rot').value) || 0;
     item.color = document.getElementById('prop-color').value;
-    if (item.type === 'shape') { item.w = w; item.h = d; }
-    else if (!item.type || item.type === 'object') { item.w = w; item.d = d; }
+
+    const sqmInput = parseFloat(document.getElementById('prop-sqm').value);
+
+    if (item.type === 'shape') {
+      if (!isNaN(sqmInput) && sqmInput > 0) {
+        // scale w and h proportionally to hit target sqm
+        const currentSqm = item.shape === 'circle'
+          ? Math.PI * (item.w / 2) * (item.h / 2) / 10000
+          : item.shape === 'lshape'
+          ? (item.w * item.h - (item.w / 2) * (item.h / 2)) / 10000
+          : item.w * item.h / 10000;
+        const scale = Math.sqrt(sqmInput / currentSqm);
+        item.w = Math.round(item.w * scale);
+        item.h = Math.round(item.h * scale);
+      } else {
+        item.w = w; item.h = d;
+      }
+    } else if (item.type === 'poly') {
+      if (!isNaN(sqmInput) && sqmInput > 0) {
+        const pts = item.points;
+        const currentArea = Math.abs(pts.reduce((s, p, i, a) => {
+          const j = (i + 1) % a.length;
+          return s + (a[j].x + p.x) * (a[j].y - p.y);
+        }, 0)) / 2 / 10000;
+        const scale = Math.sqrt(sqmInput / currentArea);
+        const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+        const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+        item.points = pts.map(p => ({
+          x: Math.round(cx + (p.x - cx) * scale),
+          y: Math.round(cy + (p.y - cy) * scale),
+        }));
+      }
+    } else if (!item.type || item.type === 'object') {
+      item.w = w; item.d = d;
+    }
+
     state.markDirty();
+    updatePropertiesUI(item);
     C2D.render();
   }
 
@@ -316,12 +369,24 @@ const App = (() => {
   }
 
   // ── Stats ─────────────────────────────────────────────────────
+  function roomAreaSqm(w) {
+    if (w.type === 'poly') {
+      const pts = w.points;
+      return Math.abs(pts.reduce((s, p, i, a) => {
+        const j = (i + 1) % a.length;
+        return s + (a[j].x + p.x) * (a[j].y - p.y);
+      }, 0)) / 2 / 10000;
+    }
+    if (w.shape === 'circle') return Math.PI * (w.w / 2) * (w.h / 2) / 10000;
+    if (w.shape === 'lshape') return (w.w * w.h - (w.w / 2) * (w.h / 2)) / 10000;
+    return w.w * w.h / 10000;
+  }
+
   function updateStats() {
     const floor = state.currentFloor();
     let area = 0;
-    floor.walls.filter(w => w.type === 'shape').forEach(w => {
-      if (w.shape === 'circle') area += Math.PI * (w.w / 2) * (w.h / 2) / 10000;
-      else area += w.w * w.h / 10000;
+    floor.walls.filter(w => w.type === 'shape' || w.type === 'poly').forEach(w => {
+      area += roomAreaSqm(w);
     });
     document.getElementById('stat-area').textContent    = area.toFixed(1);
     document.getElementById('stat-walls').textContent   = floor.walls.length;

@@ -1,27 +1,29 @@
 /* ─── Reset & Root ──────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Geist:wght@300;400;500;600&display=swap');
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:        #0d1b2a;
-  --bg2:       #112233;
-  --bg3:       #162840;
-  --border:    #1e3a5f;
-  --accent:    #2196f3;
-  --accent2:   #00bcd4;
-  --grid:      rgba(33,150,243,0.12);
-  --grid2:     rgba(33,150,243,0.25);
-  --wall:      #4fc3f7;
-  --wall-fill: rgba(79,195,247,0.08);
-  --text:      #cde4f5;
-  --text-dim:  #5a8aaa;
-  --danger:    #ef5350;
-  --success:   #66bb6a;
-  --obj-stroke:#00e5ff;
+  --bg:        #f8f5ee;
+  --bg2:       #fdfcf8;
+  --bg3:       #f0ebe0;
+  --border:    #ddd7c9;
+  --accent:    #dc655f;
+  --accent2:   #b8413c;
+  --grid:      rgba(220,101,95,0.10);
+  --grid2:     rgba(220,101,95,0.22);
+  --wall:      #130807;
+  --wall-fill: rgba(19,8,7,0.07);
+  --text:      #130807;
+  --text-dim:  #60514f;
+  --danger:    #e40014;
+  --success:   #4aa651;
+  --obj-stroke:#dc655f;
   --panel-w:   240px;
   --top-h:     52px;
   --bot-h:     26px;
   --radius:    6px;
-  --font:      'Segoe UI', system-ui, sans-serif;
+  --font:      'Geist', 'Segoe UI', system-ui, sans-serif;
+  --font-serif:'Playfair Display', Georgia, serif;
 }
 
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; }
@@ -78,7 +80,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 /* ─── Top Bar ───────────────────────────────────────────────── */
 .logo {
   font-size: 16px; font-weight: 700;
-  color: var(--accent2); letter-spacing: 1px;
+  font-family: var(--font-serif);
+  color: var(--text); letter-spacing: 0.5px;
   white-space: nowrap; margin-right: 8px;
 }
 .toolbar-center { display: flex; align-items: center; gap: 4px; flex: 1; justify-content: center; }
@@ -101,7 +104,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   color: var(--text-dim); padding: 4px 12px; border-radius: var(--radius);
   cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.15s;
 }
-.view-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.view-btn.active { background: var(--accent); color: #fdfcf8; border-color: var(--accent); }
 .view-btn:hover:not(.active) { border-color: var(--accent); color: var(--text); }
 
 .icon-btn {
@@ -126,8 +129,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   border-bottom: 1px solid var(--border);
 }
 .panel-section h3 {
-  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
-  text-transform: uppercase; color: var(--accent2); margin-bottom: 10px;
+  font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px;
 }
 .panel-section h4 {
   font-size: 11px; font-weight: 600; color: var(--text-dim); margin-bottom: 6px;
@@ -147,7 +150,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 }
 .shape-btn svg { width: 36px; height: 30px; stroke: currentColor; }
 .shape-btn:hover { border-color: var(--accent); color: var(--accent2); }
-.shape-btn.active { border-color: var(--accent); color: var(--accent2); background: rgba(33,150,243,0.1); }
+.shape-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(220,101,95,0.1); }
 
 /* ─── Sketch Options ────────────────────────────────────────── */
 .sketch-opts { display: flex; gap: 6px; margin-bottom: 12px; }
@@ -160,7 +163,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .sketch-opt svg { width: 40px; height: 20px; }
 .sketch-opt:hover, .sketch-opt.active {
   border-color: var(--accent); color: var(--accent2);
-  background: rgba(33,150,243,0.1);
+  background: rgba(220,101,95,0.1);
 }
 
 .wall-thickness {
@@ -179,7 +182,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   cursor: pointer; font-size: 11px; transition: all 0.15s;
 }
 .cat-btn:hover, .cat-btn.active {
-  background: rgba(33,150,243,0.15); border-color: var(--accent); color: var(--accent2);
+  background: rgba(220,101,95,0.12); border-color: var(--accent); color: var(--accent2);
 }
 
 .object-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
@@ -189,8 +192,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   border-radius: var(--radius); padding: 6px 8px;
   cursor: pointer; transition: all 0.15s;
 }
-.obj-item:hover { border-color: var(--accent2); background: rgba(0,229,255,0.05); }
-.obj-item.active { border-color: var(--accent2); background: rgba(0,229,255,0.1); }
+.obj-item:hover { border-color: var(--accent2); background: rgba(220,101,95,0.05); }
+.obj-item.active { border-color: var(--accent2); background: rgba(220,101,95,0.1); }
 .obj-icon { font-size: 18px; width: 24px; text-align: center; }
 .obj-info { flex: 1; }
 .obj-name { font-weight: 600; font-size: 12px; }
@@ -215,11 +218,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 /* ─── Buttons ───────────────────────────────────────────────── */
 .primary-btn {
   width: 100%; background: var(--accent); border: none;
-  color: #fff; padding: 7px; border-radius: var(--radius);
+  color: #fdfcf8; padding: 7px; border-radius: var(--radius);
   cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.15s;
   margin-top: 4px;
 }
-.primary-btn:hover { background: #1976d2; }
+.primary-btn:hover { background: var(--accent2); }
 .danger-btn {
   width: 100%; background: transparent; border: 1px solid var(--danger);
   color: var(--danger); padding: 5px; border-radius: var(--radius);
@@ -235,7 +238,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   font-size: 11px; transition: background 0.1s;
 }
 .layer-item:hover { background: var(--bg3); }
-.layer-item.active-layer { background: rgba(33,150,243,0.15); }
+.layer-item.active-layer { background: rgba(220,101,95,0.12); }
 .layer-vis { width: 14px; height: 14px; border: 1px solid var(--border); border-radius: 2px;
   background: var(--accent); cursor: pointer; flex-shrink: 0; }
 .layer-vis.hidden { background: transparent; }
@@ -251,7 +254,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   color: var(--text-dim); padding: 3px 10px; border-radius: 12px;
   cursor: pointer; font-size: 11px; transition: all 0.15s;
 }
-.floor-tab.active { background: rgba(33,150,243,0.2); border-color: var(--accent); color: var(--accent2); }
+.floor-tab.active { background: rgba(220,101,95,0.15); border-color: var(--accent); color: var(--accent2); }
 .floor-add, .floor-del {
   background: transparent; border: 1px solid var(--border);
   color: var(--text-dim); padding: 3px 7px; border-radius: 12px;
@@ -286,7 +289,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #coords-display {
   position: absolute; bottom: 14px; left: 14px;
   font-size: 11px; color: var(--text-dim);
-  background: rgba(13,27,42,0.7); padding: 3px 8px; border-radius: 4px;
+  background: rgba(248,245,238,0.85); padding: 3px 8px; border-radius: 4px;
   pointer-events: none;
 }
 

@@ -117,7 +117,7 @@ const C2D = (() => {
     for (let y = startY; y < wy1; y += minorSize) {
       ctx.moveTo(wx0, y); ctx.lineTo(wx1, y);
     }
-    ctx.strokeStyle = 'rgba(33,150,243,0.1)';
+    ctx.strokeStyle = 'rgba(220,101,95,0.10)';
     ctx.lineWidth = 0.5 / vscale;
     ctx.stroke();
 
@@ -128,7 +128,7 @@ const C2D = (() => {
     for (let y = Math.floor(wy0 / majorSize) * majorSize; y < wy1; y += majorSize) {
       ctx.moveTo(wx0, y); ctx.lineTo(wx1, y);
     }
-    ctx.strokeStyle = 'rgba(33,150,243,0.2)';
+    ctx.strokeStyle = 'rgba(220,101,95,0.20)';
     ctx.lineWidth = 1 / vscale;
     ctx.stroke();
 
@@ -136,13 +136,13 @@ const C2D = (() => {
     ctx.beginPath();
     ctx.moveTo(wx0, 0); ctx.lineTo(wx1, 0);
     ctx.moveTo(0, wy0); ctx.lineTo(0, wy1);
-    ctx.strokeStyle = 'rgba(33,150,243,0.4)';
+    ctx.strokeStyle = 'rgba(220,101,95,0.35)';
     ctx.lineWidth = 1.5 / vscale;
     ctx.stroke();
 
     // Ruler labels
     const labelStep = majorSize;
-    ctx.fillStyle = 'rgba(90,138,170,0.8)';
+    ctx.fillStyle = 'rgba(96,81,79,0.7)';
     ctx.font = `${10 / vscale}px monospace`;
     ctx.textAlign = 'center';
     for (let x = Math.floor(wx0 / labelStep) * labelStep; x < wx1; x += labelStep) {
@@ -184,15 +184,21 @@ const C2D = (() => {
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
-      if (wall.type === 'shape') {
+      if (wall.type === 'shape' || wall.type === 'poly') {
         ctx.beginPath();
-        buildShapePath(ctx, wall);
-        ctx.fillStyle   = sel ? 'rgba(33,150,243,0.15)' : 'rgba(79,195,247,0.07)';
-        ctx.strokeStyle = sel ? '#64b5f6' : '#4fc3f7';
+        if (wall.type === 'poly') buildPolyPath(ctx, wall);
+        else buildShapePath(ctx, wall);
+        ctx.fillStyle   = sel ? 'rgba(220,101,95,0.13)' : 'rgba(19,8,7,0.06)';
+        ctx.strokeStyle = sel ? '#dc655f' : '#130807';
         ctx.lineWidth   = wall.thickness / vscale;
         ctx.fill();
         ctx.stroke();
-        if (sel) drawDimensions(wall);
+        drawSqmLabel(wall);
+        if (sel) {
+          drawDimensions(wall);
+          if (wall.type === 'shape') drawEdgeHandles(wall);
+          else drawPolyHandles(wall);
+        }
       } else if (wall.type === 'wall') {
         const pts = wall.points;
         if (pts.length < 2) { ctx.restore(); return; }
@@ -200,24 +206,22 @@ const C2D = (() => {
         ctx.moveTo(pts[0].x, pts[0].y);
         for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
         if (wall.closed) ctx.closePath();
-        ctx.strokeStyle = sel ? '#64b5f6' : '#4fc3f7';
+        ctx.strokeStyle = sel ? '#dc655f' : '#130807';
         ctx.lineWidth   = (wall.thickness || 15) / vscale;
         ctx.stroke();
 
-        // snap intersection dots
         wall.snaps && wall.snaps.forEach(p => {
           ctx.beginPath();
           ctx.arc(p.x, p.y, 6 / vscale, 0, Math.PI * 2);
-          ctx.fillStyle = '#00e5ff';
+          ctx.fillStyle = '#dc655f';
           ctx.fill();
         });
 
         if (sel) {
-          // draw control handles
           pts.forEach(p => {
             ctx.beginPath();
             ctx.arc(p.x, p.y, 7 / vscale, 0, Math.PI * 2);
-            ctx.fillStyle = '#2196f3';
+            ctx.fillStyle = '#dc655f';
             ctx.fill();
           });
           drawWallDimension(wall);
@@ -250,12 +254,12 @@ const C2D = (() => {
       const hw = obj.w / 2, hd = obj.d / 2;
 
       // shadow
-      ctx.shadowColor = 'rgba(0,0,0,0.4)';
+      ctx.shadowColor = 'rgba(19,8,7,0.18)';
       ctx.shadowBlur = 8 / vscale;
       ctx.shadowOffsetY = 4 / vscale;
 
       ctx.fillStyle   = obj.color + (sel ? 'ee' : '99');
-      ctx.strokeStyle = sel ? '#00e5ff' : (obj.color + 'ff');
+      ctx.strokeStyle = sel ? '#dc655f' : (obj.color + 'ff');
       ctx.lineWidth   = (sel ? 2.5 : 1.5) / vscale;
       ctx.beginPath();
       if (ctx.roundRect) ctx.roundRect(-hw, -hd, obj.w, obj.d, 4 / vscale);
@@ -265,8 +269,7 @@ const C2D = (() => {
       ctx.stroke();
 
       // Label
-      ctx.fillStyle = 'rgba(205,228,245,0.9)';
-      ctx.font = `bold ${Math.max(8, Math.min(14, obj.d * 0.25)) / vscale * vscale}px sans-serif`;
+      ctx.fillStyle = 'rgba(19,8,7,0.85)';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const fsize = Math.max(8, Math.min(14, obj.d * 0.22));
@@ -274,20 +277,20 @@ const C2D = (() => {
       ctx.fillText(obj.icon || obj.name.slice(0, 8), 0, 0);
 
       // Dim label
-      ctx.fillStyle = 'rgba(150,200,230,0.6)';
+      ctx.fillStyle = 'rgba(96,81,79,0.7)';
       ctx.font = `${9 / vscale}px monospace`;
       ctx.fillText(`${obj.w}×${obj.d}cm`, 0, hd + 12 / vscale);
 
       if (sel) {
         // resize handle
-        ctx.fillStyle = '#00e5ff';
+        ctx.fillStyle = '#dc655f';
         ctx.beginPath();
         ctx.arc(hw, hd, 6 / vscale, 0, Math.PI * 2);
         ctx.fill();
         // rotate handle
         ctx.beginPath();
         ctx.arc(0, -hd - 16 / vscale, 5 / vscale, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffeb3b';
+        ctx.fillStyle = '#b8413c';
         ctx.fill();
       }
       ctx.restore();
@@ -300,7 +303,7 @@ const C2D = (() => {
     ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#4fc3f7';
+    ctx.strokeStyle = '#130807';
     ctx.lineWidth = (state.wallThickness || 15) / vscale;
     ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].y);
@@ -311,7 +314,7 @@ const C2D = (() => {
     // Start dot
     ctx.beginPath();
     ctx.arc(pts[0].x, pts[0].y, 6 / vscale, 0, Math.PI * 2);
-    ctx.fillStyle = '#00e5ff';
+    ctx.fillStyle = '#dc655f';
     ctx.fill();
 
     // Angle snap indicator
@@ -375,20 +378,54 @@ const C2D = (() => {
     ctx.restore();
   }
 
+  // ── Area helper ────────────────────────────────────────────────
+  function shapeAreaSqm(wall) {
+    if (wall.type === 'poly') return polygonAreaSqm(wall.points);
+    const { w, h, shape } = wall;
+    if (shape === 'circle') return Math.PI * (w / 2) * (h / 2) / 10000;
+    if (shape === 'lshape') return (w * h - (w / 2) * (h / 2)) / 10000;
+    return w * h / 10000;
+  }
+
+  function polygonAreaSqm(pts) {
+    let area = 0;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      area += (pts[j].x + pts[i].x) * (pts[j].y - pts[i].y);
+    }
+    return Math.abs(area) / 2 / 10000;
+  }
+
+  function drawSqmLabel(wall) {
+    const b = wallBounds(wall);
+    const cx = b.x + b.w / 2;
+    const cy = b.y + b.h / 2;
+    const sqm = shapeAreaSqm(wall).toFixed(1);
+    const label = wall.name ? `${wall.name}\n${sqm} m²` : `${sqm} m²`;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const lines = label.split('\n');
+    const fs = Math.max(10, Math.min(18, b.w * 0.12));
+    ctx.font = `600 ${fs / vscale}px 'Geist', sans-serif`;
+    ctx.fillStyle = 'rgba(19,8,7,0.65)';
+    lines.forEach((line, i) => {
+      const offset = (i - (lines.length - 1) / 2) * (fs + 2) / vscale;
+      ctx.fillText(line, cx, cy + offset);
+    });
+    ctx.restore();
+  }
+
   function drawDimensions(wall) {
-    // Bounding-box dimensions for shape walls
     const { x, y, w, h } = wallBounds(wall);
     ctx.save();
-    ctx.strokeStyle = '#ffeb3b';
-    ctx.fillStyle = '#ffeb3b';
+    ctx.strokeStyle = '#dc655f';
+    ctx.fillStyle = '#dc655f';
     ctx.font = `${11 / vscale}px monospace`;
     ctx.textAlign = 'center';
     ctx.lineWidth = 1 / vscale;
     ctx.setLineDash([4 / vscale, 3 / vscale]);
-    // width dim
     ctx.beginPath(); ctx.moveTo(x, y - 14 / vscale); ctx.lineTo(x + w, y - 14 / vscale); ctx.stroke();
     ctx.fillText(`${Math.round(w)} cm`, x + w / 2, y - 18 / vscale);
-    // height dim
     ctx.save();
     ctx.translate(x - 14 / vscale, y + h / 2);
     ctx.rotate(-Math.PI / 2);
@@ -408,12 +445,132 @@ const C2D = (() => {
       ctx.save();
       ctx.translate(mx, my);
       ctx.rotate(angle);
-      ctx.fillStyle = '#ffeb3b';
+      ctx.fillStyle = '#dc655f';
       ctx.font = `${10 / vscale}px monospace`;
       ctx.textAlign = 'center';
       ctx.fillText(`${dist} cm`, 0, -10 / vscale);
       ctx.restore();
     }
+  }
+
+  // ── Edge handles for shape rooms (click to reshape) ────────────
+  function shapeEdgeMidpoints(wall) {
+    const { x, y, w, h } = wall;
+    if (wall.shape === 'rect' || wall.shape === 'square') {
+      return [
+        { x: x + w / 2, y, edge: 'top'    },
+        { x: x + w,     y: y + h / 2, edge: 'right'  },
+        { x: x + w / 2, y: y + h, edge: 'bottom' },
+        { x,            y: y + h / 2, edge: 'left'   },
+      ];
+    }
+    if (wall.shape === 'lshape') {
+      return [
+        { x: x + w / 2,       y,             edge: 'top'       },
+        { x: x + w,           y: y + h * 0.25, edge: 'right-top' },
+        { x: x + w * 0.75,    y: y + h * 0.5, edge: 'step-h'   },
+        { x: x + w * 0.5,     y: y + h * 0.75, edge: 'step-v'  },
+        { x: x + w * 0.25,    y: y + h,      edge: 'bottom'    },
+        { x,                  y: y + h / 2,  edge: 'left'      },
+      ];
+    }
+    return [];
+  }
+
+  function drawEdgeHandles(wall) {
+    const mids = shapeEdgeMidpoints(wall);
+    ctx.save();
+    mids.forEach(m => {
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, 6 / vscale, 0, Math.PI * 2);
+      ctx.fillStyle = '#fdfcf8';
+      ctx.strokeStyle = '#dc655f';
+      ctx.lineWidth = 1.5 / vscale;
+      ctx.fill();
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  function hitEdgeHandle(wx, wy, wall) {
+    if (wall.type !== 'shape') return null;
+    const mids = shapeEdgeMidpoints(wall);
+    const r = 10 / vscale;
+    for (const m of mids) {
+      if (Math.hypot(wx - m.x, wy - m.y) < r) return m;
+    }
+    return null;
+  }
+
+  // ── Poly room (polygon with editable vertices) ─────────────────
+  function buildPolyPath(ctx, wall) {
+    const pts = wall.points;
+    if (!pts || pts.length < 2) return;
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.closePath();
+  }
+
+  function drawPolyHandles(wall) {
+    const pts = wall.points;
+    ctx.save();
+    pts.forEach((p, i) => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 7 / vscale, 0, Math.PI * 2);
+      ctx.fillStyle = '#fdfcf8';
+      ctx.strokeStyle = '#dc655f';
+      ctx.lineWidth = 2 / vscale;
+      ctx.fill();
+      ctx.stroke();
+    });
+    // midpoint handles to add vertices
+    pts.forEach((p, i) => {
+      const next = pts[(i + 1) % pts.length];
+      const mx = (p.x + next.x) / 2, my = (p.y + next.y) / 2;
+      ctx.beginPath();
+      ctx.arc(mx, my, 4 / vscale, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(220,101,95,0.4)';
+      ctx.strokeStyle = '#dc655f';
+      ctx.lineWidth = 1 / vscale;
+      ctx.fill();
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  function hitPolyVertex(wx, wy, wall) {
+    if (wall.type !== 'poly') return -1;
+    const r = 10 / vscale;
+    for (let i = 0; i < wall.points.length; i++) {
+      if (Math.hypot(wx - wall.points[i].x, wy - wall.points[i].y) < r) return i;
+    }
+    return -1;
+  }
+
+  function hitPolyMidpoint(wx, wy, wall) {
+    if (wall.type !== 'poly') return -1;
+    const pts = wall.points;
+    const r = 8 / vscale;
+    for (let i = 0; i < pts.length; i++) {
+      const next = pts[(i + 1) % pts.length];
+      const mx = (pts[i].x + next.x) / 2, my = (pts[i].y + next.y) / 2;
+      if (Math.hypot(wx - mx, wy - my) < r) return i;
+    }
+    return -1;
+  }
+
+  function shapeToPolyPoints(wall) {
+    const { x, y, w, h, shape } = wall;
+    if (shape === 'rect' || shape === 'square') {
+      return [{ x, y }, { x: x + w, y }, { x: x + w, y: y + h }, { x, y: y + h }];
+    }
+    if (shape === 'lshape') {
+      return [
+        { x, y }, { x: x + w, y }, { x: x + w, y: y + h * 0.5 },
+        { x: x + w * 0.5, y: y + h * 0.5 }, { x: x + w * 0.5, y: y + h }, { x, y: y + h },
+      ];
+    }
+    return [{ x, y }, { x: x + w, y }, { x: x + w, y: y + h }, { x, y: y + h }];
   }
 
   // ── Shape path builder ─────────────────────────────────────────
@@ -432,6 +589,11 @@ const C2D = (() => {
 
   function wallBounds(wall) {
     if (wall.type === 'shape') return { x: wall.x, y: wall.y, w: wall.w, h: wall.h };
+    if (wall.type === 'poly') {
+      const xs = wall.points.map(p => p.x), ys = wall.points.map(p => p.y);
+      const x = Math.min(...xs), y = Math.min(...ys);
+      return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+    }
     const xs = wall.points.map(p => p.x), ys = wall.points.map(p => p.y);
     const x = Math.min(...xs), y = Math.min(...ys);
     return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
@@ -467,7 +629,7 @@ const C2D = (() => {
 
   function hitWall(wx, wy, wall) {
     const thresh = (wall.thickness || 15) / 2 + 8;
-    if (wall.type === 'shape') {
+    if (wall.type === 'shape' || wall.type === 'poly') {
       const b = wallBounds(wall);
       if (wx < b.x - thresh || wx > b.x + b.w + thresh) return false;
       if (wy < b.y - thresh || wy > b.y + b.h + thresh) return false;
@@ -569,11 +731,59 @@ const C2D = (() => {
     const tool = state.tool;
 
     if (tool === 'select') {
+      const sel = state.selected;
+
+      // check poly vertex / midpoint handles first (only when already selected)
+      if (sel && sel.type === 'poly') {
+        const vi = hitPolyVertex(wx, wy, sel);
+        if (vi >= 0) {
+          dragging = { type: 'poly-vertex', wall: sel, vi };
+          render(); return;
+        }
+        const mi = hitPolyMidpoint(wx, wy, sel);
+        if (mi >= 0) {
+          const next = sel.points[(mi + 1) % sel.points.length];
+          const nx = snap((sel.points[mi].x + next.x) / 2);
+          const ny = snap((sel.points[mi].y + next.y) / 2);
+          sel.points.splice(mi + 1, 0, { x: nx, y: ny });
+          dragging = { type: 'poly-vertex', wall: sel, vi: mi + 1 };
+          state.markDirty(); render(); return;
+        }
+      }
+
+      // check edge handles on shape rooms (only when already selected)
+      if (sel && sel.type === 'shape') {
+        const eh = hitEdgeHandle(wx, wy, sel);
+        if (eh) {
+          // convert to poly room
+          const pts = shapeToPolyPoints(sel);
+          sel.type = 'poly';
+          sel.points = pts;
+          delete sel.shape; delete sel.w; delete sel.h; delete sel.x; delete sel.y;
+          // find the vertex nearest to the clicked midpoint and start dragging it
+          let bestV = 0, bestD = Infinity;
+          sel.points.forEach((p, i) => {
+            const d = Math.hypot(p.x - eh.x, p.y - eh.y);
+            if (d < bestD) { bestD = d; bestV = i; }
+          });
+          const mi2 = hitPolyMidpoint(eh.x, eh.y, sel);
+          if (mi2 >= 0) {
+            const np = sel.points[(mi2 + 1) % sel.points.length];
+            const nx = snap((sel.points[mi2].x + np.x) / 2);
+            const ny = snap((sel.points[mi2].y + np.y) / 2);
+            sel.points.splice(mi2 + 1, 0, { x: nx, y: ny });
+            dragging = { type: 'poly-vertex', wall: sel, vi: mi2 + 1 };
+          } else {
+            dragging = { type: 'poly-vertex', wall: sel, vi: bestV };
+          }
+          state.markDirty(); render(); return;
+        }
+      }
+
       const hit = hitTest(wx, wy);
       if (hit) {
         state.setSelected(hit);
-        // check resize handle
-        if (hit.type !== 'wall' && hit.type !== 'shape') {
+        if (hit.type !== 'wall' && hit.type !== 'shape' && hit.type !== 'poly') {
           const hw = hit.w / 2, hd = hit.d / 2;
           const cx = hit.x + hw, cy = hit.y + hd;
           const rot = -(hit.rot || 0) * Math.PI / 180;
@@ -588,7 +798,9 @@ const C2D = (() => {
             dragging = { type: 'move', obj: hit, offX: wx - hit.x, offY: wy - hit.y };
           }
         } else {
-          dragging = { type: 'move-wall', wall: hit, offX: wx, offY: wy, origPts: hit.type === 'wall' ? hit.points.map(p => ({ ...p })) : null, origX: hit.x, origY: hit.y };
+          dragging = { type: 'move-wall', wall: hit, offX: wx, offY: wy,
+            origPts: hit.type === 'wall' ? hit.points.map(p => ({ ...p })) : (hit.type === 'poly' ? hit.points.map(p => ({ ...p })) : null),
+            origX: hit.x, origY: hit.y };
         }
       } else {
         state.setSelected(null);
@@ -666,11 +878,16 @@ const C2D = (() => {
         const cx = o.x + o.w / 2, cy = o.y + o.d / 2;
         const angle = Math.atan2(wy - cy, wx - cx) * 180 / Math.PI + 90;
         o.rot = Math.round(angle / 5) * 5;
+      } else if (dragging.type === 'poly-vertex') {
+        const p = dragging.wall.points[dragging.vi];
+        p.x = snap(wx); p.y = snap(wy);
       } else if (dragging.type === 'move-wall') {
         const dx = wx - dragging.offX, dy = wy - dragging.offY;
         dragging.offX = wx; dragging.offY = wy;
         const w = dragging.wall;
-        if (w.type === 'wall' && w.points) {
+        if (w.type === 'poly') {
+          w.points = w.points.map(p => ({ x: p.x + dx, y: p.y + dy }));
+        } else if (w.type === 'wall' && w.points) {
           w.points = w.points.map(p => ({ x: p.x + dx, y: p.y + dy }));
         } else {
           w.x += dx; w.y += dy;
