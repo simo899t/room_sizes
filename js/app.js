@@ -279,9 +279,10 @@ const App = (() => {
       const w = parseInt(document.getElementById('prop-w').value);
       const h = parseInt(document.getElementById('prop-d').value);
       const sqmInput = parseFloat(document.getElementById('prop-sqm').value);
-      if (!isNaN(sqmInput) && sqmInput > 0) {
-        const cur = roomAreaSqm(item);
-        const scale = Math.sqrt(sqmInput / cur);
+      const curSqm = roomAreaSqm(item);
+      // only scale via sqm if the user actually changed the sqm field
+      if (!isNaN(sqmInput) && sqmInput > 0 && Math.abs(sqmInput - curSqm) > 0.01) {
+        const scale = Math.sqrt(sqmInput / curSqm);
         item.w = Math.max(10, Math.round(item.w * scale));
         item.h = Math.max(10, Math.round(item.h * scale));
       } else {
@@ -290,10 +291,10 @@ const App = (() => {
       }
     } else if (item.type === 'poly') {
       const sqmInput = parseFloat(document.getElementById('prop-sqm').value);
-      if (!isNaN(sqmInput) && sqmInput > 0) {
-        const cur = roomAreaSqm(item);
-        if (cur > 0) {
-          const scale = Math.sqrt(sqmInput / cur);
+      const curSqm = roomAreaSqm(item);
+      if (!isNaN(sqmInput) && sqmInput > 0 && Math.abs(sqmInput - curSqm) > 0.01) {
+        if (curSqm > 0) {
+          const scale = Math.sqrt(sqmInput / curSqm);
           const cx = item.points.reduce((s, p) => s + p.x, 0) / item.points.length;
           const cy = item.points.reduce((s, p) => s + p.y, 0) / item.points.length;
           item.points = item.points.map(p => ({
